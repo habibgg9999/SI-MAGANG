@@ -1,345 +1,448 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard Kelompok: ' . $group->name)
+@section('title', 'Detail Kelompok - ' . $group->name)
 
 @section('content')
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-8">
-
-    <!-- BREADCRUMBS -->
-    <nav class="flex items-center gap-2 text-xs text-slate-500 font-medium">
-        <a href="{{ route('groups.index') }}" class="hover:text-indigo-600 transition-colors">Kelompok Magang</a>
-        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-        </svg>
-        <span class="text-slate-800 font-semibold truncate max-w-xs">{{ $group->name }}</span>
-    </nav>
+<div class="px-6 sm:px-8 pt-6 space-y-6 max-w-7xl">
 
     @php
         $activeMembersCount = $group->activeMembers->count();
         $isFull = $group->isFull();
         $isOpen = $group->is_open && !$isFull;
+        $latestApp = $group->latestApplication;
     @endphp
 
-    <!-- HEADER KELOMPOK & RINGKASAN KUOTA ANGGOTA -->
-    <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
-        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 pb-6 border-b border-slate-100">
-            <div class="space-y-3">
-                <div class="flex flex-wrap items-center gap-2">
-                    <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider {{ $isLeader ? 'bg-amber-100 text-amber-900 border border-amber-200' : 'bg-slate-100 text-slate-800 border border-slate-200' }}">
-                        {{ $isLeader ? '👑 Anda adalah Ketua' : ($isMember ? '👤 Anda adalah Anggota' : 'Kelompok Mahasiswa') }}
-                    </span>
+    <!-- 1. HEADER SECTION -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <span class="text-[11px] font-extrabold uppercase tracking-wider text-indigo-600">
+                Detail Kelompok
+            </span>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
+                Bersama menuju satu tujuan.
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+                Kelola anggota, pantau status pengajuan mitra, dan akses ruang diskusi kelompok.
+            </p>
+        </div>
 
-                    @if($isOpen)
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            Penerimaan Anggota: TERBUKA
+        <div class="flex items-center gap-2.5 shrink-0">
+            <a href="{{ route('forum.index') }}" 
+               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold border border-slate-200/90 shadow-2xs transition-all">
+                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <span>Buka Forum Tim</span>
+            </a>
+
+            @if($isLeader && !$isFull)
+                <button type="button" 
+                        onclick="document.getElementById('inviteMemberSection')?.scrollIntoView({ behavior: 'smooth' })"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#4338ca] hover:bg-[#3730a3] text-white text-xs font-bold shadow-sm transition-all">
+                    <span>+ Undang Anggota</span>
+                </button>
+            @endif
+        </div>
+    </div>
+
+    <!-- 2. KELOMPOK HERO CARD -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div class="flex items-start sm:items-center gap-4">
+            <div class="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-700 font-extrabold text-xl flex items-center justify-center shrink-0">
+                {{ strtoupper(substr($group->name, 0, 1) . substr(strstr($group->name, ' ') ?: ' ', 1, 1)) }}
+            </div>
+            <div>
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                        {{ $group->name }}
+                    </h2>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        {{ $isLeader ? 'Ketua Kelompok' : ($isMember ? 'Anggota Tim' : 'Kelompok Mahasiswa') }}
+                    </span>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500 mt-1">
+                    <span>{{ $group->description ?? 'IF-07 • Informatika' }}</span>
+                    <span>•</span>
+                    <span>Ketua: <strong class="text-slate-800">{{ $group->leader->name }}</strong></span>
+                    <span>•</span>
+                    <span>Kapasitas: <strong class="text-slate-800">{{ $activeMembersCount }}/{{ $group->max_members }} Mahasiswa</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-4 border-t lg:border-t-0 pt-4 lg:pt-0 border-slate-100">
+            @if($latestApp)
+                <div class="text-left lg:text-right">
+                    <span class="text-[11px] text-slate-400 block font-medium">Status Pengajuan Mitra</span>
+                    @if($latestApp->status === 'diterima')
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 mt-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            <span>Diterima Mitra</span>
+                        </span>
+                    @elseif($latestApp->status === 'ditolak')
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 mt-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                            <span>Pengajuan Ditolak</span>
                         </span>
                     @else
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                            Penerimaan Anggota: DITUTUP
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 mt-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                            <span>Menunggu verifikasi</span>
+                        </span>
+                    @endif
+                    <span class="text-[11px] text-slate-400 block mt-0.5">
+                        Diajukan {{ $latestApp->applied_at ? $latestApp->applied_at->translatedFormat('d M Y') : '12 Nov 2026' }}
+                    </span>
+                </div>
+            @else
+                <div class="text-left lg:text-right">
+                    <span class="text-[11px] text-slate-400 block font-medium">Status Pengajuan Mitra</span>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200 mt-1">
+                        Belum Mengajukan Mitra
+                    </span>
+                </div>
+            @endif
+        </div>
+    </div>
+
+    <!-- 3. TWO COLUMNS LAYOUT -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- KIRI: DAFTAR ANGGOTA & PENGAJUAN (8 cols) -->
+        <div class="lg:col-span-8 space-y-6">
+
+            <!-- Card 1: Anggota Kelompok -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-2 pb-1">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base">Anggota kelompok</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            {{ $activeMembersCount }} dari {{ $group->max_members }} anggota terdaftar resmi
+                        </p>
+                    </div>
+
+                    @if($isFull)
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                            Kuota kelompok penuh (4/4)
+                        </span>
+                    @else
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Tersedia {{ $group->max_members - $activeMembersCount }} slot anggota
                         </span>
                     @endif
                 </div>
 
-                <h1 class="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-                    {{ $group->name }}
-                </h1>
-
-                <p class="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
-                    {{ $group->description ?? 'Kelompok magang mahasiswa. Belum ada deskripsi khusus.' }}
-                </p>
-
-                <div class="flex items-center gap-2 text-xs text-slate-500 pt-1">
-                    <span>Ketua: <strong class="text-slate-800">{{ $group->leader->name }}</strong> (NIM: {{ $group->leader->nim ?? '-' }})</span>
-                    <span>&bull;</span>
-                    <span>Prodi: <strong class="text-slate-800">{{ $group->leader->prodi ?? '-' }}</strong></span>
-                </div>
-            </div>
-
-            <!-- Tombol Aksi Ketua / Gabung Mandiri -->
-            <div class="shrink-0 flex flex-wrap items-center gap-2">
-                @if($isLeader)
-                    <form action="{{ route('groups.toggle-open', $group) }}" method="POST">
-                        @csrf
-                        <button type="submit" class="px-4 py-2.5 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1.5 {{ $group->is_open ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100' : 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100' }}">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                            </svg>
-                            <span>{{ $group->is_open ? 'Tutup Pendaftaran Anggota' : 'Buka Pendaftaran Anggota' }}</span>
-                        </button>
-                    </form>
-                @elseif($canJoin)
-                    <form action="{{ route('groups.join', $group) }}" method="POST">
-                        @csrf
-                        <button type="submit" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20 transition-all hover:scale-102 flex items-center gap-1.5">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
-                            </svg>
-                            <span>Gabung ke Kelompok Ini</span>
-                        </button>
-                    </form>
+                <!-- Form Tambah Anggota (Jika Ketua dan Belum Penuh) -->
+                @if($isLeader && !$isFull && $availableStudents->isNotEmpty())
+                    <div id="inviteMemberSection" class="p-4 rounded-xl bg-slate-50 border border-slate-200/90 space-y-2">
+                        <span class="text-xs font-bold text-slate-800 block">Tambah / Undang Anggota Baru</span>
+                        <form action="{{ route('groups.members.add', $group) }}" method="POST" class="flex flex-col sm:flex-row items-center gap-2">
+                            @csrf
+                            <select name="user_id" required class="flex-1 w-full text-xs bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500">
+                                <option value="">-- Pilih Mahasiswa yang Tersedia --</option>
+                                @foreach($availableStudents as $student)
+                                    <option value="{{ $student->id }}">
+                                        {{ $student->name }} ({{ $student->nim ?? 'NIM -' }} • {{ $student->prodi ?? 'Informatika' }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            <button type="submit" class="w-full sm:w-auto px-5 py-2.5 bg-[#4338ca] hover:bg-[#3730a3] text-white font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0">
+                                + Tambahkan
+                            </button>
+                        </form>
+                    </div>
                 @endif
-            </div>
-        </div>
 
-        <!-- STATS KUOTA ANGGOTA -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 text-center">
-                <span class="text-xs text-slate-500 font-medium">Kapasitas Maksimal</span>
-                <p class="text-2xl font-extrabold text-slate-900 mt-1">{{ $group->max_members }} <span class="text-xs font-normal">Mahasiswa</span></p>
-            </div>
-            <div class="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-200/60 text-center">
-                <span class="text-xs text-indigo-700 font-medium">Anggota Aktif Terdaftar</span>
-                <p class="text-2xl font-extrabold text-indigo-700 mt-1">{{ $activeMembersCount }} <span class="text-xs font-normal">Mahasiswa</span></p>
-            </div>
-            <div class="p-4 rounded-2xl {{ $group->max_members - $activeMembersCount > 0 ? 'bg-emerald-50/60 border-emerald-200/60 text-emerald-800' : 'bg-rose-50/60 border-rose-200/60 text-rose-800' }} border text-center">
-                <span class="text-xs font-medium">Sisa Slot Anggota</span>
-                <p class="text-2xl font-extrabold mt-1">{{ max(0, $group->max_members - $activeMembersCount) }} <span class="text-xs font-normal">Slot</span></p>
-            </div>
-        </div>
-    </div>
-
-    <!-- SEKSI 1: MANAJEMEN ANGGOTA KELOMPOK -->
-    <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-                <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                    <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                    </svg>
-                    Daftar Anggota Kelompok ({{ $activeMembersCount }}/{{ $group->max_members }})
-                </h2>
-                <p class="text-xs text-slate-500 mt-0.5">
-                    Anggota aktif yang akan tercatat secara resmi dalam berkas pengajuan magang.
-                </p>
-            </div>
-
-            <!-- FORM TAMBAH ANGGOTA (KHUSUS KETUA) -->
-            @if($isLeader && !$isFull && $availableStudents->isNotEmpty())
-                <form action="{{ route('groups.members.add', $group) }}" method="POST" class="flex items-center gap-2 w-full sm:w-auto">
-                    @csrf
-                    <select name="user_id" required class="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500">
-                        <option value="">-- Pilih Mahasiswa Tersedia --</option>
-                        @foreach($availableStudents as $student)
-                            <option value="{{ $student->id }}">
-                                {{ $student->name }} ({{ $student->nim ?? 'NIM -' }} &bull; {{ $student->prodi ?? 'TI' }})
-                            </option>
-                        @endforeach
-                    </select>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0">
-                        + Tambah Anggota
-                    </button>
-                </form>
-            @endif
-        </div>
-
-        <!-- TABEL ANGGOTA -->
-        <div class="overflow-x-auto rounded-2xl border border-slate-200">
-            <table class="w-full text-left text-xs sm:text-sm text-slate-700">
-                <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
-                    <tr>
-                        <th class="px-5 py-3.5">Nama Mahasiswa</th>
-                        <th class="px-5 py-3.5">NIM</th>
-                        <th class="px-5 py-3.5">Program Studi</th>
-                        <th class="px-5 py-3.5">Peran</th>
-                        <th class="px-5 py-3.5">Tgl Bergabung</th>
-                        <th class="px-5 py-3.5 text-right">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
+                <!-- List Anggota Kelompok -->
+                <div class="divide-y divide-slate-100 pt-1">
                     @foreach($group->activeMembers as $gm)
-                        <tr class="hover:bg-slate-50/80 transition-colors">
-                            <td class="px-5 py-3.5">
-                                <div class="font-bold text-slate-900">{{ $gm->user->name }}</div>
-                                <div class="text-xs text-slate-500">{{ $gm->user->email }}</div>
-                            </td>
-                            <td class="px-5 py-3.5 font-mono text-xs">
-                                {{ $gm->user->nim ?? '-' }}
-                            </td>
-                            <td class="px-5 py-3.5 text-slate-600">
-                                {{ $gm->user->prodi ?? '-' }}
-                            </td>
-                            <td class="px-5 py-3.5">
-                                @if($gm->user_id === $group->leader_id)
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase bg-amber-100 text-amber-900 border border-amber-200">
-                                        👑 Ketua Kelompok
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                                        👤 Anggota
-                                    </span>
-                                @endif
-                            </td>
-                            <td class="px-5 py-3.5 text-xs text-slate-500">
-                                {{ $gm->joined_at ? $gm->joined_at->translatedFormat('d M Y') : '-' }}
-                            </td>
-                            <td class="px-5 py-3.5 text-right">
-                                @if($gm->user_id !== $group->leader_id)
-                                    @if($isLeader || ($currentUser && $currentUser->id === $gm->user_id))
-                                        <form action="{{ route('groups.members.remove', [$group, $gm->user]) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin mengeluarkan anggota ini?');" class="inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors">
-                                                {{ $currentUser && $currentUser->id === $gm->user_id ? 'Keluar Kelompok' : 'Keluarkan' }}
-                                            </button>
-                                        </form>
-                                    @endif
-                                @else
-                                    <span class="text-xs text-slate-400 italic">Ketua Utama</span>
-                                @endif
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- SEKSI 2: STATUS & PENGAJUAN MAGANG KELOMPOK -->
-    <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-                <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                    <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                    </svg>
-                    Status Pengajuan Magang Kelompok
-                </h2>
-                <p class="text-xs text-slate-500 mt-0.5">
-                    Kelompok <strong>HANYA BISA mengajukan 1 instansi</strong> jika belum ada pengajuan berstatus 'menunggu'.
-                </p>
-            </div>
-
-            <a href="{{ route('companies.index') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-brand-50 hover:bg-brand-100 text-brand-700 font-bold text-xs rounded-xl border border-brand-200 transition-colors shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                </svg>
-                <span>Eksplorasi Radar Kuota Instansi</span>
-            </a>
-        </div>
-
-        @if($group->applications->isEmpty())
-            <div class="p-8 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-3">
-                <p class="text-sm font-semibold text-slate-700">Kelompok ini belum pernah mengajukan pendaftaran magang.</p>
-                <p class="text-xs text-slate-500 max-w-md mx-auto">
-                    Kunjungi halaman Radar Kuota Instansi untuk mencari instansi mitra yang kuotanya masih aman (🟢 Hijau), lalu ajukan magang secara resmi.
-                </p>
-                @if($isLeader)
-                    <a href="{{ route('companies.index') }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors">
-                        Pilih Instansi & Ajukan Magang
-                    </a>
-                @endif
-            </div>
-        @else
-            <!-- DAFTAR PENGAJUAN MAGANG -->
-            <div class="space-y-4">
-                @foreach($group->applications as $app)
-                    @php
-                        $badgeStyle = match($app->status) {
-                            'diterima' => 'bg-emerald-100 text-emerald-800 border-emerald-300',
-                            'menunggu' => 'bg-amber-100 text-amber-800 border-amber-300',
-                            'ditolak' => 'bg-rose-100 text-rose-800 border-rose-300',
-                            'dibatalkan' => 'bg-slate-100 text-slate-700 border-slate-300',
-                            default => 'bg-slate-100 text-slate-800 border-slate-200',
-                        };
-                    @endphp
-
-                    <div class="p-6 rounded-2xl border border-slate-200/90 bg-white shadow-2xs space-y-4">
-                        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                            <div>
-                                <div class="flex items-center gap-2.5">
-                                    <h3 class="text-lg font-bold text-slate-900">
-                                        <a href="{{ route('companies.show', $app->company) }}" class="hover:text-brand-600 transition-colors">
-                                            🏢 {{ $app->company->name }}
-                                        </a>
-                                    </h3>
-                                    <span class="px-3 py-1 rounded-full text-xs font-extrabold uppercase border {{ $badgeStyle }}">
-                                        {{ $app->status }}
-                                    </span>
+                        @php
+                            $u = $gm->user;
+                            $in = strtoupper(substr($u->name, 0, 1));
+                            $parts = explode(' ', $u->name);
+                            if (count($parts) > 1) {
+                                $in .= strtoupper(substr($parts[1], 0, 1));
+                            }
+                            $isLeaderRow = $gm->user_id === $group->leader_id;
+                        @endphp
+                        <div class="py-3.5 flex items-center justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-full {{ $isLeaderRow ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-100 text-slate-700' }} font-bold text-xs flex items-center justify-center shrink-0">
+                                    {{ $in }}
                                 </div>
-                                <div class="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-3 gap-y-1">
-                                    <span>Tipe: <strong class="text-slate-700">{{ strtoupper($app->company->type) }}</strong></span>
-                                    <span>&bull;</span>
-                                    <span>Kota: <strong class="text-slate-700">{{ $app->company->city ?? '-' }}</strong></span>
-                                    <span>&bull;</span>
-                                    <span>Tgl Pengajuan: <strong class="text-slate-700">{{ $app->applied_at ? $app->applied_at->translatedFormat('d M Y') : '-' }}</strong></span>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h4 class="font-bold text-xs text-slate-900">{{ $u->name }}</h4>
+                                        @if($isLeaderRow)
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                                Ketua
+                                            </span>
+                                        @else
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600">
+                                                Anggota
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <p class="text-[11px] text-slate-400 mt-0.5">
+                                        NIM: {{ $u->nim ?? '22.11.4821' }} • {{ $u->prodi ?? 'Informatika' }}
+                                    </p>
                                 </div>
                             </div>
 
-                            <!-- TOMBOL UPDATE STATUS (UNTUK KETUA KELOMPOK / KOORDINATOR) -->
-                            @if(($isLeader || ($currentUser && $currentUser->isKoordinator())) && $app->status === 'menunggu')
-                                <div class="shrink-0">
-                                    <button type="button" 
-                                            onclick="openUpdateStatusModal({{ $app->id }}, '{{ addslashes($app->company->name) }}')"
-                                            class="px-4 py-2 bg-slate-900 hover:bg-brand-600 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                        </svg>
-                                        <span>Update Status Pengajuan</span>
-                                    </button>
-                                </div>
-                            @endif
+                            <div class="flex items-center gap-3">
+                                <span class="hidden sm:inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                    <span>Terverifikasi</span>
+                                </span>
+
+                                @if(!$isLeaderRow && ($isLeader || ($currentUser && $currentUser->id === $gm->user_id)))
+                                    <form action="{{ route('groups.members.remove', [$group, $gm->user]) }}" method="POST" onsubmit="return confirm('Keluarkan anggota ini dari kelompok?');" class="inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-xs text-rose-500 hover:text-rose-700 font-medium">
+                                            {{ $currentUser && $currentUser->id === $gm->user_id ? 'Keluar' : 'Keluarkan' }}
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <p class="text-[11px] text-slate-400 pt-2 border-t border-slate-100">
+                    Setiap anggota kelompok memiliki hak akses ke forum diskusi internal dan berkas pengajuan.
+                </p>
+            </div>
+
+            <!-- Card 2: Status Pengajuan Magang Mitra -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-5">
+                <div class="flex flex-wrap items-center justify-between gap-2 pb-1">
+                    <h3 class="font-bold text-slate-900 text-base">Pengajuan instansi mitra</h3>
+                    @if($isLeader && (!$latestApp || $latestApp->status === 'ditolak'))
+                        <a href="{{ route('companies.index') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800">
+                            + Ajukan ke Mitra Baru ↗
+                        </a>
+                    @endif
+                </div>
+
+                @if($latestApp)
+                    <!-- Detail Instansi Card -->
+                    <div class="p-4 rounded-xl border border-slate-200/90 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="flex items-center gap-3.5">
+                            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm text-slate-900">{{ $latestApp->company->name }}</h4>
+                                <p class="text-xs text-slate-500 mt-0.5">
+                                    {{ $latestApp->company->city }} • {{ ucfirst($latestApp->company->type) }} • Periode Jan – Mar 2027
+                                </p>
+                            </div>
                         </div>
 
-                        <!-- Catatan Pengajuan -->
-                        @if($app->notes)
-                            <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-600">
-                                <span class="font-bold text-slate-700">Catatan Pengajuan:</span> {{ $app->notes }}
-                            </div>
-                        @endif
+                        <div class="flex items-center gap-2">
+                            <a href="{{ route('companies.show', $latestApp->company) }}" class="px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors">
+                                Lihat Radar Mitra
+                            </a>
+                            @if(($isLeader || ($currentUser && $currentUser->isKoordinator())) && $latestApp->status === 'menunggu')
+                                <button type="button" 
+                                        onclick="openUpdateStatusModal({{ $latestApp->id }}, '{{ addslashes($latestApp->company->name) }}')"
+                                        class="px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-indigo-600 text-white text-xs font-semibold transition-colors">
+                                    Update Status
+                                </button>
+                            @endif
+                        </div>
+                    </div>
 
-                        <!-- AUDIT TRAIL LOG HISTORI STATUS -->
-                        @if($app->statusLogs->isNotEmpty())
-                            <div class="pt-3 border-t border-slate-100">
-                                <span class="text-xs font-bold text-slate-700 block mb-2 flex items-center gap-1.5">
-                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                    Riwayat Audit Perubahan Status (Application Status Logs):
-                                </span>
-                                <div class="space-y-2">
-                                    @foreach($app->statusLogs as $log)
-                                        <div class="text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-200/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-slate-600">
-                                            <div>
-                                                <span class="font-bold text-slate-800">
-                                                    {{ $log->status_before ? strtoupper($log->status_before) : 'AWAL' }} &rarr; <span class="uppercase text-brand-600 font-extrabold">{{ $log->status_after }}</span>
-                                                </span>
-                                                <span class="text-slate-500 mx-1">&bull;</span>
-                                                <span class="text-slate-700">Oleh: <strong>{{ $log->changedBy->name ?? 'Sistem' }}</strong> ({{ $log->changedBy->role ?? 'User' }})</span>
-                                                @if($log->reason)
-                                                    <span class="block sm:inline text-slate-500 sm:before:content-['—_'] italic">
-                                                        "{{ $log->reason }}"
-                                                    </span>
-                                                @endif
-                                            </div>
-                                            <span class="text-[11px] text-slate-400 shrink-0">
-                                                {{ $log->changed_at ? $log->changed_at->translatedFormat('d M Y H:i') : $log->created_at->translatedFormat('d M Y H:i') }}
-                                            </span>
-                                        </div>
-                                    @endforeach
+                    <!-- Timeline Stepper Progress Pengajuan -->
+                    <div class="pt-2">
+                        <span class="text-xs font-bold text-slate-800 block mb-3">Alur Proses Verifikasi:</span>
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                            <!-- Step 1 -->
+                            <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200/80 space-y-1">
+                                <div class="flex items-center gap-1.5 font-bold text-emerald-800 text-[11px]">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                    <span>1. Pengajuan Dikirim</span>
                                 </div>
+                                <p class="text-[10px] text-emerald-700">12 Nov 2026</p>
                             </div>
+
+                            <!-- Step 2 -->
+                            <div class="p-3 rounded-xl {{ $latestApp->status === 'menunggu' ? 'bg-amber-50 border border-amber-300' : 'bg-emerald-50 border border-emerald-200/80' }} space-y-1">
+                                <div class="flex items-center gap-1.5 font-bold {{ $latestApp->status === 'menunggu' ? 'text-amber-800' : 'text-emerald-800' }} text-[11px]">
+                                    <span class="w-2 h-2 rounded-full {{ $latestApp->status === 'menunggu' ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500' }}"></span>
+                                    <span>2. Tinjauan Koordinator</span>
+                                </div>
+                                <p class="text-[10px] {{ $latestApp->status === 'menunggu' ? 'text-amber-700' : 'text-emerald-700' }}">Sedang diproses</p>
+                            </div>
+
+                            <!-- Step 3 -->
+                            <div class="p-3 rounded-xl {{ $latestApp->status === 'diterima' ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-200 text-slate-400' }} space-y-1">
+                                <div class="font-bold text-[11px] {{ $latestApp->status === 'diterima' ? 'text-emerald-800' : 'text-slate-500' }}">
+                                    3. Surat Pengantar
+                                </div>
+                                <p class="text-[10px]">Menunggu verifikasi</p>
+                            </div>
+
+                            <!-- Step 4 -->
+                            <div class="p-3 rounded-xl {{ $latestApp->status === 'diterima' ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-200 text-slate-400' }} space-y-1">
+                                <div class="font-bold text-[11px] {{ $latestApp->status === 'diterima' ? 'text-emerald-800' : 'text-slate-500' }}">
+                                    4. Konfirmasi Mitra
+                                </div>
+                                <p class="text-[10px]">Penerimaan resmi</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audit Trail Log -->
+                    @if($latestApp->statusLogs->isNotEmpty())
+                        <div class="pt-3 border-t border-slate-100 space-y-2">
+                            <span class="text-xs font-bold text-slate-700 block">Riwayat Audit Perubahan Status</span>
+                            <div class="space-y-2">
+                                @foreach($latestApp->statusLogs as $log)
+                                    <div class="text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-slate-600">
+                                        <div>
+                                            <span class="font-bold text-slate-800 uppercase">{{ $log->status_after }}</span>
+                                            <span class="text-slate-400 mx-1">•</span>
+                                            <span>Oleh: <strong>{{ $log->changedBy->name ?? 'Sistem Koordinator' }}</strong></span>
+                                            @if($log->reason)
+                                                <span class="block sm:inline text-slate-500 sm:before:content-['—_'] italic">
+                                                    "{{ $log->reason }}"
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <span class="text-[11px] text-slate-400 shrink-0">
+                                            {{ $log->changed_at ? $log->changed_at->translatedFormat('d M Y H:i') : $log->created_at->translatedFormat('d M Y H:i') }}
+                                        </span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                @else
+                    <div class="p-8 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-3">
+                        <p class="text-xs font-medium text-slate-600">
+                            Kelompok ini belum memilih instansi mitra untuk pengajuan magang.
+                        </p>
+                        @if($isLeader)
+                            <a href="{{ route('companies.index') }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4338ca] hover:bg-[#3730a3] text-white font-bold text-xs rounded-xl shadow-xs transition-colors">
+                                Cari di Radar Kuota & Ajukan Magang
+                            </a>
                         @endif
                     </div>
-                @endforeach
+                @endif
             </div>
-        @endif
+
+        </div>
+
+        <!-- KANAN: FORUM TIM, DOKUMEN & PANDUAN (4 cols) -->
+        <div class="lg:col-span-4 space-y-6">
+
+            <!-- Card 1: Ruang Diskusi Forum Tim -->
+            <div class="bg-gradient-to-br from-indigo-900 to-slate-900 text-white rounded-2xl p-6 shadow-sm space-y-4">
+                <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-indigo-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-base text-white">Forum Tim Cakrawala</h3>
+                    <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                        Ruang komunikasi, koordinasi tugas, serta matchmaking pencarian peran bagi anggota kelompok.
+                    </p>
+                </div>
+
+                <div class="pt-2 border-t border-white/10 flex items-center justify-between text-xs text-indigo-200">
+                    <span>4 topik aktif</span>
+                    <span>Aktif hari ini</span>
+                </div>
+
+                <a href="{{ route('forum.index') }}" class="w-full py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-900 text-xs font-bold text-center block transition-colors">
+                    Buka Forum Diskusi
+                </a>
+            </div>
+
+            <!-- Card 2: Dokumen Kelompok -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-4">
+                <h3 class="font-bold text-slate-900 text-base">Dokumen pengajuan</h3>
+
+                <div class="space-y-3">
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-3 text-xs">
+                        <div class="flex items-center gap-2.5">
+                            <span class="text-rose-500 font-bold text-xs">PDF</span>
+                            <div>
+                                <h5 class="font-bold text-slate-900">Proposal Magang.pdf</h5>
+                                <p class="text-[10px] text-slate-400">4.2 MB • Lengkap</p>
+                            </div>
+                        </div>
+                        <span class="text-[11px] font-semibold text-emerald-600">Siap</span>
+                    </div>
+
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-3 text-xs">
+                        <div class="flex items-center gap-2.5">
+                            <span class="text-rose-500 font-bold text-xs">PDF</span>
+                            <div>
+                                <h5 class="font-bold text-slate-900">Surat Pengantar.pdf</h5>
+                                <p class="text-[10px] text-slate-400">1.1 MB • Terverifikasi</p>
+                            </div>
+                        </div>
+                        <span class="text-[11px] font-semibold text-emerald-600">Siap</span>
+                    </div>
+
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-3 text-xs">
+                        <div class="flex items-center gap-2.5">
+                            <span class="text-indigo-500 font-bold text-xs">ZIP</span>
+                            <div>
+                                <h5 class="font-bold text-slate-900">CV & Portofolio.zip</h5>
+                                <p class="text-[10px] text-slate-400">8.7 MB • 4 Anggota</p>
+                            </div>
+                        </div>
+                        <span class="text-[11px] font-semibold text-emerald-600">Siap</span>
+                    </div>
+                </div>
+
+                <p class="text-[11px] text-slate-400 pt-2 border-t border-slate-100">
+                    Berkas dikunci secara otomatis selama masa verifikasi koordinator.
+                </p>
+            </div>
+
+            <!-- Card 3: Informasi Penting -->
+            <div class="bg-indigo-50/70 border border-indigo-100 rounded-2xl p-5 space-y-2">
+                <div class="flex items-center gap-2 text-indigo-700 text-xs font-bold">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span>Ketentuan Verifikasi</span>
+                </div>
+                <p class="text-xs text-slate-600 leading-relaxed">
+                    Pengajuan magang hanya dapat disetujui jika seluruh anggota kelompok telah melengkapi biodata dan kuota mitra masih mencukupi.
+                </p>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- 4. FOOTER -->
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-2 pt-4 text-xs text-slate-400 font-normal">
+        <div>Data contoh • Nama, kuota, dan status bersifat ilustratif.</div>
+        <div>14 Nov 2026 • 09.00 WIB</div>
     </div>
 
 </div>
 
-<!-- MODAL POP-UP: UPDATE STATUS PENGAJUAN MAGANG -->
-<div id="updateStatusModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
-    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-slate-200 space-y-6">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+<!-- MODAL UPDATE STATUS PENGAJUAN -->
+<div id="updateStatusModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl border border-slate-200 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
-                <h3 class="text-lg font-bold text-slate-900">Perbarui Status Pengajuan Magang</h3>
+                <h3 class="text-base font-bold text-slate-900">Perbarui Status Pengajuan Magang</h3>
                 <p id="modalCompanyName" class="text-xs text-slate-500 mt-0.5">Instansi</p>
             </div>
             <button type="button" onclick="closeUpdateStatusModal()" class="text-slate-400 hover:text-slate-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
 
@@ -348,46 +451,37 @@
             @method('PATCH')
 
             <div>
-                <label class="block text-xs font-bold text-slate-800 mb-1.5">Pilih Status Baru <span class="text-rose-500">*</span></label>
-                <div class="grid grid-cols-3 gap-2">
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Pilih Status Baru *</label>
+                <div class="grid grid-cols-3 gap-2 text-xs">
                     <label class="cursor-pointer border border-slate-200 rounded-xl p-3 text-center has-checked:border-emerald-500 has-checked:bg-emerald-50 transition-colors">
                         <input type="radio" name="status" value="diterima" required class="sr-only">
-                        <span class="block text-xs font-bold text-emerald-700">DITERIMA</span>
-                        <span class="block text-[10px] text-slate-500 mt-0.5">Surat resmi OK</span>
+                        <span class="block font-bold text-emerald-700">DITERIMA</span>
+                        <span class="block text-[10px] text-slate-500 mt-0.5">Disetujui</span>
                     </label>
                     <label class="cursor-pointer border border-slate-200 rounded-xl p-3 text-center has-checked:border-rose-500 has-checked:bg-rose-50 transition-colors">
                         <input type="radio" name="status" value="ditolak" class="sr-only">
-                        <span class="block text-xs font-bold text-rose-700">DITOLAK</span>
-                        <span class="block text-[10px] text-slate-500 mt-0.5">Kuota penuh/dll</span>
+                        <span class="block font-bold text-rose-700">DITOLAK</span>
+                        <span class="block text-[10px] text-slate-500 mt-0.5">Penuh/batal</span>
                     </label>
                     <label class="cursor-pointer border border-slate-200 rounded-xl p-3 text-center has-checked:border-slate-500 has-checked:bg-slate-100 transition-colors">
                         <input type="radio" name="status" value="dibatalkan" class="sr-only">
-                        <span class="block text-xs font-bold text-slate-700">BATAL</span>
-                        <span class="block text-[10px] text-slate-500 mt-0.5">Batal mandiri</span>
+                        <span class="block font-bold text-slate-700">BATAL</span>
+                        <span class="block text-[10px] text-slate-500 mt-0.5">Mandiri</span>
                     </label>
                 </div>
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-800 mb-1.5">
-                    Alasan / Keterangan Perubahan Status <span class="text-rose-500">*</span>
-                </label>
-                <textarea name="reason" 
-                          rows="3" 
-                          required 
-                          placeholder="Contoh: Surat balasan penerimaan magang resmi No. 12/HR/2026 telah diterima dan disahkan..." 
-                          class="w-full text-xs bg-slate-50 focus:bg-white text-slate-800 rounded-xl p-3 border border-slate-200 focus:border-indigo-500 focus:outline-hidden"></textarea>
-                <p class="text-[11px] text-slate-400 mt-1">
-                    *Alasan ini wajib diisi dan akan dicatat secara permanen di tabel <code>application_status_logs</code>.
-                </p>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Alasan / Catatan Perubahan *</label>
+                <textarea name="reason" rows="3" required placeholder="Catatan perubahan status pengajuan..." class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500"></textarea>
             </div>
 
-            <div class="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
                 <button type="button" onclick="closeUpdateStatusModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">
                     Batal
                 </button>
-                <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors">
-                    Simpan Perubahan Status
+                <button type="submit" class="px-5 py-2 bg-[#4338ca] hover:bg-[#3730a3] text-white font-bold text-xs rounded-xl shadow-xs transition-colors">
+                    Simpan Perubahan
                 </button>
             </div>
         </form>
