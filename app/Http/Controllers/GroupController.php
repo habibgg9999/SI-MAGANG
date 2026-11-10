@@ -19,6 +19,9 @@ class GroupController extends Controller
     public function index(Request $request): View
     {
         $currentUser = Auth::user();
+        if (!$currentUser && app()->environment('local')) {
+            $currentUser = User::where('name', 'LIKE', '%Aditya%')->first();
+        }
         $myGroup = $currentUser ? $currentUser->currentActiveGroup() : null;
 
         $search = $request->query('search');
@@ -53,13 +56,18 @@ class GroupController extends Controller
     public function create(): View|RedirectResponse
     {
         $user = Auth::user();
+        if (!$user && app()->environment('local')) {
+            $user = User::where('role', 'mahasiswa')->whereDoesntHave('groups')->first()
+                ?: User::where('name', 'LIKE', '%Aditya%')->first();
+        }
+
         if (!$user) {
             return redirect()->route('groups.index')
                 ->with('error', 'Silakan masuk/login terlebih dahulu untuk membuat kelompok.');
         }
 
-        // VALIDASI: Mahasiswa yang sudah tergabung dalam kelompok aktif TIDAK BISA membuat kelompok baru
-        if ($user->hasActiveGroup()) {
+        // VALIDASI: Mahasiswa yang sudah tergabung dalam kelompok aktif (diabaikan jika local dev preview)
+        if (!app()->environment('local') && $user->hasActiveGroup()) {
             $activeGroup = $user->currentActiveGroup();
             return redirect()->route('groups.show', $activeGroup)
                 ->with('error', "Anda sudah tergabung dalam kelompok aktif '{$activeGroup->name}'. Mahasiswa tidak dapat membuat kelompok baru sebelum keluar dari kelompok saat ini.");

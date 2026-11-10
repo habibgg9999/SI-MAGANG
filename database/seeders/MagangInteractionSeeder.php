@@ -75,6 +75,28 @@ class MagangInteractionSeeder extends Seeder
             );
         }
 
+        // Akun Tim Cakrawala (Aditya Nugraha dkk sesuai Figma)
+        $mhsAditya = User::where('email', 'aditya@mahasiswa.ac.id')->first();
+        $mhsNadia = User::where('email', 'nadia@mahasiswa.ac.id')->first();
+        $mhsFajarR = User::where('email', 'fajar.r@mahasiswa.ac.id')->first();
+        $mhsDina = User::where('email', 'dina@mahasiswa.ac.id')->first();
+
+        $groupCakrawala = Group::firstOrCreate(
+            ['name' => 'Tim Cakrawala'],
+            [
+                'leader_id' => $mhsAditya->id,
+                'max_members' => 4,
+                'is_open' => false,
+                'description' => 'IF-07 • Informatika - Tim pengembangan aplikasi sistem informasi dan web service.',
+                'is_active' => true,
+            ]
+        );
+
+        GroupMember::firstOrCreate(['group_id' => $groupCakrawala->id, 'user_id' => $mhsAditya->id], ['status' => 'aktif', 'joined_at' => Carbon::now()->subDays(15)]);
+        GroupMember::firstOrCreate(['group_id' => $groupCakrawala->id, 'user_id' => $mhsNadia->id], ['status' => 'aktif', 'joined_at' => Carbon::now()->subDays(14)]);
+        GroupMember::firstOrCreate(['group_id' => $groupCakrawala->id, 'user_id' => $mhsFajarR->id], ['status' => 'aktif', 'joined_at' => Carbon::now()->subDays(12)]);
+        GroupMember::firstOrCreate(['group_id' => $groupCakrawala->id, 'user_id' => $mhsDina->id], ['status' => 'aktif', 'joined_at' => Carbon::now()->subDays(10)]);
+
         $telkom = Company::where('name', 'LIKE', '%Telkom%')->first();
         $diskominfo = Company::where('name', 'LIKE', '%Dinas Komunikasi%')->first();
         $bappeda = Company::where('name', 'LIKE', '%Bappeda%')->first();
@@ -134,9 +156,9 @@ class MagangInteractionSeeder extends Seeder
             ]
         );
 
-        // Group 5: IoT Systems (Leader: Aditya) -> Target: Gamatechno (Pengajuan Menggantung > 14 hari)
+        // Group 5: IoT Systems (Leader: Wicaksono) -> Target: Gamatechno (Pengajuan Menggantung > 14 hari)
         $mhsHanging = User::firstOrCreate(
-            ['email' => 'aditya@mahasiswa.ac.id'],
+            ['email' => 'wicaksono@mahasiswa.ac.id'],
             [
                 'nim' => '22081010099',
                 'name' => 'Aditya Wicaksono',
@@ -320,6 +342,29 @@ class MagangInteractionSeeder extends Seeder
                     'changed_by' => $mhsHanging->id,
                     'reason' => 'Pengajuan proposal awal kelompok ke PT Gamatechno Indonesia.',
                     'changed_at' => Carbon::now()->subDays(19),
+                ]
+            );
+        }
+
+        // Case F: Tim Cakrawala (Leader: Aditya) -> Target: Diskominfo DIY (Status: MENUNGGU VERIFIKASI)
+        if ($diskominfo && isset($groupCakrawala)) {
+            $appCakrawala = InternshipApplication::firstOrCreate(
+                ['group_id' => $groupCakrawala->id, 'company_id' => $diskominfo->id],
+                [
+                    'status' => 'menunggu',
+                    'applied_at' => Carbon::parse('2026-11-12 09:30:00'),
+                    'responded_at' => null,
+                    'notes' => 'Pengajuan 4 mahasiswa untuk posisi pengembangan aplikasi SPBE.',
+                    'deadline_reminder' => Carbon::now()->addDays(12),
+                ]
+            );
+            ApplicationStatusLog::firstOrCreate(
+                ['application_id' => $appCakrawala->id, 'status_after' => 'menunggu'],
+                [
+                    'status_before' => null,
+                    'changed_by' => $mhsAditya->id,
+                    'reason' => 'Pengajuan proposal magang kelompok Tim Cakrawala.',
+                    'changed_at' => Carbon::parse('2026-11-12 09:30:00'),
                 ]
             );
         }
